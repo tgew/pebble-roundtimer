@@ -191,7 +191,7 @@ void handle_init(AppContextRef ctx) {
 
     // Add some button labels
     bmp_init_container(RESOURCE_ID_IMAGE_BUTTON_LABELS, &button_labels);
-    layer_set_frame(&button_labels.layer.layer, GRect(130, 10, 14, 136));
+    layer_set_frame(&button_labels.layer.layer, GRect(130, 10, 14, 77));
     layer_add_child(root_layer, &button_labels.layer.layer);
 
     init_config_window();
