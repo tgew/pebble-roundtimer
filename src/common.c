@@ -25,6 +25,12 @@
 #include "pebble_app.h"
 #include "pebble_fonts.h"
 
+Window main_window;
+
+time_t round_time = 60000;
+time_t warning_time = 0; // part of the round time
+time_t rest_time = 15000;
+
 void itoa1(int num, char* buffer) {
     const char digits[10] = "0123456789";
     buffer[0] = digits[num % 10];

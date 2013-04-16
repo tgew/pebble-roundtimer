@@ -1,6 +1,6 @@
 /*
- * Pebble Stopwatch - common utility header file
- * Copyright (C) 2013 Katharine Berry
+ * Pebble Stopwatch - round config header
+ * Copyright (C) 2013 Jason Chu
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -21,15 +21,6 @@
  */
 
 
-extern Window main_window;
-
-extern time_t round_time;
-extern time_t warning_time;
-extern time_t rest_time;
-
-void itoa1(int i, char* a);
-void itoa2(int i, char* a);
-time_t get_pebble_time();
-void format_lap(time_t time, char* buffer);
-
-void reset_stopwatch(bool keep_running);
+void init_config_window();
+void config_config_provider(ClickConfig **config, Window *window);
+void config_run(ClickRecognizerRef recognizer, Window *window);

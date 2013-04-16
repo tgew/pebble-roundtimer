@@ -25,6 +25,7 @@
 #include "pebble_fonts.h"
 
 #include "laps.h"
+#include "config.h"
 #include "common.h"
 
 #define MY_UUID { 0xC2, 0x5A, 0x8D, 0x50, 0x10, 0x5F, 0x45, 0xBF, 0xB9, 0x92, 0xCF, 0xF9, 0x58, 0xA7, 0x93, 0xAD }
@@ -34,7 +35,6 @@ PBL_APP_INFO(MY_UUID,
              RESOURCE_ID_IMAGE_MENU_ICON,
              APP_INFO_STANDARD_APP);
 
-static Window window;
 AppContextRef app;
 
 // Main display
@@ -51,9 +51,6 @@ static TextLayer lap_layers[LAP_TIME_SIZE]; // an extra temporary layer
 static int next_lap_layer = 0;
 static int last_lap_time = 0;
 
-time_t round_time = 60000;
-time_t warning_time = 0; // part of the round time
-time_t rest_time = 15000;
 int last_period = -1;
 
 // The documentation claims this is defined, but it is not.
@@ -88,7 +85,7 @@ static int busy_animating = 0;
 #define BUTTON_RESET BUTTON_ID_UP
 
 void toggle_stopwatch_handler(ClickRecognizerRef recognizer, Window *window);
-void config_provider(ClickConfig **config, Window *window);
+void main_config_provider(ClickConfig **config, Window *window);
 void handle_init(AppContextRef ctx);
 time_t time_seconds();
 void stop_stopwatch();
@@ -110,15 +107,16 @@ void period_changed();
 void handle_init(AppContextRef ctx) {
     app = ctx;
 
-    window_init(&window, "Stopwatch");
-    window_stack_push(&window, true /* Animated */);
-    window_set_background_color(&window, GColorBlack);
-    window_set_fullscreen(&window, false);
+    // Main window setup
+    window_init(&main_window, "Round Timer");
+    //window_stack_push(&main_window, true /* Animated */);
+    window_set_background_color(&main_window, GColorBlack);
+    window_set_fullscreen(&main_window, false);
 
     resource_init_current_app(&APP_RESOURCES);
 
     // Arrange for user input.
-    window_set_click_config_provider(&window, (ClickConfigProvider) config_provider);
+    window_set_click_config_provider(&main_window, (ClickConfigProvider) main_config_provider);
 
     // Get our fonts
     GFont big_font = fonts_load_custom_font(resource_get_handle(FONT_BIG_TIME));
@@ -126,7 +124,7 @@ void handle_init(AppContextRef ctx) {
     GFont laps_font = fonts_load_custom_font(resource_get_handle(FONT_LAPS));
 
     // Root layer
-    Layer *root_layer = window_get_root_layer(&window);
+    Layer *root_layer = window_get_root_layer(&main_window);
 
     // Set up the big timer.
     text_layer_init(&big_time_layer, GRect(0, 5, 96, 35));
@@ -144,11 +142,6 @@ void handle_init(AppContextRef ctx) {
     text_layer_set_text(&seconds_time_layer, ".0");
     layer_add_child(root_layer, &seconds_time_layer.layer);
 
-    // Draw our nice line.
-    layer_init(&line_layer, GRect(0, 45, 144, 2));
-    line_layer.update_proc = &draw_line;
-    layer_add_child(root_layer, &line_layer);
-
     // Set up the lap time layers. These will be made visible later.
     for(int i = 0; i < LAP_TIME_SIZE; ++i) {
         text_layer_init(&lap_layers[i], GRect(-139, 52, 139, 30));
@@ -164,8 +157,7 @@ void handle_init(AppContextRef ctx) {
     layer_set_frame(&button_labels.layer.layer, GRect(130, 10, 14, 136));
     layer_add_child(root_layer, &button_labels.layer.layer);
 
-    // Set up lap time stuff, too.
-    init_lap_window();
+    init_config_window();
 }
 
 void handle_deinit(AppContextRef ctx) {
@@ -202,15 +194,15 @@ void toggle_stopwatch_handler(ClickRecognizerRef recognizer, Window *window) {
     }
 }
 
-void reset_stopwatch_handler(ClickRecognizerRef recognizer, Window *window) {
-    if(busy_animating) return;
+void reset_stopwatch(bool keep_running) {
     bool is_running = started;
     stop_stopwatch();
     elapsed_time = 0;
     start_time = 0;
     last_lap_time = 0;
     last_pebble_time = 0;
-    if(is_running) start_stopwatch();
+    last_period = -1;
+    if(is_running && keep_running) start_stopwatch();
     update_stopwatch();
 
     // Animate all the laps away.
@@ -223,6 +215,12 @@ void reset_stopwatch_handler(ClickRecognizerRef recognizer, Window *window) {
     }
     next_lap_layer = 0;
     clear_stored_laps();
+}
+
+void reset_stopwatch_handler(ClickRecognizerRef recognizer, Window *window) {
+    if(busy_animating) return;
+
+    reset_stopwatch(true);
 }
 
 void lap_time_handler(ClickRecognizerRef recognizer, Window *window) {
@@ -398,7 +396,7 @@ void handle_display_lap_times(ClickRecognizerRef recognizer, Window *window) {
     show_laps();
 }
 
-void config_provider(ClickConfig **config, Window *window) {
+void main_config_provider(ClickConfig **config, Window *window) {
     config[BUTTON_RUN]->click.handler = (ClickHandler)toggle_stopwatch_handler;
     config[BUTTON_RESET]->click.handler = (ClickHandler)reset_stopwatch_handler;
     config[BUTTON_LAP]->click.handler = (ClickHandler)lap_time_handler;
