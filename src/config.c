@@ -147,14 +147,14 @@ void change_selection_down(ClickRecognizerRef recognizer, Window *window) {
     change_selection(1);
 }
 
-void make_watch_go() {
+void make_watch_go(ClickRecognizerRef recognizer, Window *window) {
     window_stack_push(&main_window, true);
     reset_stopwatch(false);
 }
 
 void go_up(ClickRecognizerRef recognizer, Window *window) {
     if (selection == 6) {
-        make_watch_go();
+        make_watch_go(NULL, NULL);
     }
     else {
         int incr = 1000;
@@ -182,7 +182,7 @@ void go_up(ClickRecognizerRef recognizer, Window *window) {
 
 void go_down(ClickRecognizerRef recognizer, Window *window) {
     if (selection == 6) {
-        make_watch_go();
+        make_watch_go(NULL, NULL);
     }
     else {
         int incr = -1000;
@@ -210,7 +210,10 @@ void go_down(ClickRecognizerRef recognizer, Window *window) {
 
 void config_config_provider(ClickConfig **config, Window *window) {
     config[BUTTON_ID_SELECT]->click.handler = (ClickHandler)change_selection_down;
-    config[BUTTON_ID_SELECT]->click.repeat_interval_ms = 250;
+
+    config[BUTTON_ID_SELECT]->long_click.handler = (ClickHandler)make_watch_go;
+    config[BUTTON_ID_SELECT]->long_click.delay_ms = 700;
+
     config[BUTTON_ID_UP]->click.handler = (ClickHandler)go_up;
     config[BUTTON_ID_UP]->click.repeat_interval_ms = 250;
     config[BUTTON_ID_DOWN]->click.handler = (ClickHandler)go_down;
