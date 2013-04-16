@@ -20,6 +20,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <string.h>
 #include "pebble_os.h"
 #include "pebble_app.h"
 #include "pebble_fonts.h"
@@ -40,8 +41,11 @@ AppContextRef app;
 // Main display
 static TextLayer big_time_layer;
 static TextLayer seconds_time_layer;
-static Layer line_layer;
 static BmpContainer button_labels;
+static TextLayer period_layer;
+
+static char period_text[8] = "";
+static char new_period_text[8] = "";
 
 
 // Lap time display
@@ -127,7 +131,7 @@ void handle_init(AppContextRef ctx) {
     Layer *root_layer = window_get_root_layer(&main_window);
 
     // Set up the big timer.
-    text_layer_init(&big_time_layer, GRect(0, 5, 96, 35));
+    text_layer_init(&big_time_layer, GRect(0, 55, 96, 35));
     text_layer_set_background_color(&big_time_layer, GColorBlack);
     text_layer_set_font(&big_time_layer, big_font);
     text_layer_set_text_color(&big_time_layer, GColorWhite);
@@ -135,12 +139,20 @@ void handle_init(AppContextRef ctx) {
     text_layer_set_text_alignment(&big_time_layer, GTextAlignmentRight);
     layer_add_child(root_layer, &big_time_layer.layer);
 
-    text_layer_init(&seconds_time_layer, GRect(96, 17, 49, 35));
+    text_layer_init(&seconds_time_layer, GRect(96, 67, 49, 35));
     text_layer_set_background_color(&seconds_time_layer, GColorBlack);
     text_layer_set_font(&seconds_time_layer, seconds_font);
     text_layer_set_text_color(&seconds_time_layer, GColorWhite);
     text_layer_set_text(&seconds_time_layer, ".0");
     layer_add_child(root_layer, &seconds_time_layer.layer);
+
+    text_layer_init(&period_layer, GRect(-139, 10, 139, 50));
+    text_layer_set_background_color(&period_layer, GColorBlack);
+    text_layer_set_font(&period_layer, laps_font);
+    text_layer_set_text_color(&period_layer, GColorWhite);
+    text_layer_set_text(&period_layer, period_text);
+    text_layer_set_text_alignment(&period_layer, GTextAlignmentCenter);
+    layer_add_child(root_layer, &period_layer.layer);
 
     // Set up the lap time layers. These will be made visible later.
     for(int i = 0; i < LAP_TIME_SIZE; ++i) {
@@ -204,6 +216,9 @@ void reset_stopwatch(bool keep_running) {
     last_period = -1;
     if(is_running && keep_running) start_stopwatch();
     update_stopwatch();
+
+    strcpy(period_text, "");
+    strcpy(new_period_text, "");
 
     // Animate all the laps away.
     busy_animating = LAP_TIME_SIZE;
@@ -269,6 +284,56 @@ void update_stopwatch() {
 
 void animation_stopped(Animation *animation, void *data) {
     --busy_animating;
+}
+
+static PropertyAnimation period_animation;
+static PropertyAnimation period_animation2;
+void set_period_text(Animation *animation, void *data) {
+    strcpy(period_text, new_period_text);
+}
+
+
+void do_period_swoop_part2(Animation *animation, void *data) {
+    property_animation_init_layer_frame(&period_animation2, &period_layer.layer, &GRect(-139, 10, 139, 50), &GRect(0, 10, 139, 50));
+    animation_set_curve(&period_animation2.animation, AnimationCurveEaseOut);
+    animation_set_delay(&period_animation2.animation, 50);
+    animation_set_handlers(&period_animation2.animation, (AnimationHandlers){
+        .started = (AnimationStartedHandler)set_period_text
+    }, NULL);
+    animation_schedule(&period_animation2.animation);
+
+}
+
+void do_period_swoop() {
+    if (strcmp(period_text, "") != 0) {
+        property_animation_init_layer_frame(&period_animation, &period_layer.layer, &GRect(0, 10, 139, 50), &GRect(139, 10, 139, 50));
+        animation_set_curve(&period_animation.animation, AnimationCurveEaseOut);
+        animation_set_delay(&period_animation.animation, 50);
+        animation_set_handlers(&period_animation.animation, (AnimationHandlers){
+            .stopped = (AnimationStoppedHandler)do_period_swoop_part2
+        }, NULL);
+        animation_schedule(&period_animation.animation);
+    }
+    else {
+        do_period_swoop_part2(NULL, NULL);
+    }
+
+}
+
+void display_new_period() {
+    int current_period = get_round_period();
+
+    if (current_period == 1) {
+        strcpy(new_period_text, "Warning");
+    }
+    else if (current_period == 2) {
+        strcpy(new_period_text, "Rest");
+    }
+    else if (current_period == 0) {
+        strcpy(new_period_text, "Round");
+    }
+
+    do_period_swoop();
 }
 
 void shift_lap_layer(PropertyAnimation* animation, Layer* layer, GRect* target, int distance_multiplier) {
@@ -364,6 +429,7 @@ void period_changed() {
         else if (current_period == 0) {
             vibes_long_pulse();
         }
+        display_new_period();
     }
     last_period = current_period;
 }
