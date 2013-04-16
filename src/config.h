@@ -21,6 +21,7 @@
  */
 
 
+extern char round_count_digits[3];
 void init_config_window();
 void config_config_provider(ClickConfig **config, Window *window);
 void config_run(ClickRecognizerRef recognizer, Window *window);

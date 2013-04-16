@@ -43,10 +43,18 @@ static TextLayer big_time_layer;
 static TextLayer seconds_time_layer;
 static BmpContainer button_labels;
 static TextLayer period_layer;
+static TextLayer count_text_layer;
+static TextLayer count_layer;
 
 static char period_text[8] = "";
 static char new_period_text[8] = "";
 
+static char round_count_text[3] = "";
+
+const VibePattern rounds_done_pattern = {
+    .durations = (uint32_t []) {300, 100, 300, 100, 300, 100, 600},
+    .num_segments = 7
+};
 
 // Lap time display
 #define LAP_TIME_SIZE 5
@@ -107,6 +115,7 @@ time_t single_round_running_time();
 int get_round_period();
 time_t current_counter();
 void period_changed();
+int current_round_count();
 
 void handle_init(AppContextRef ctx) {
     app = ctx;
@@ -153,6 +162,22 @@ void handle_init(AppContextRef ctx) {
     text_layer_set_text(&period_layer, period_text);
     text_layer_set_text_alignment(&period_layer, GTextAlignmentCenter);
     layer_add_child(root_layer, &period_layer.layer);
+
+    text_layer_init(&count_text_layer, GRect(0, 131, 59, 21));
+    text_layer_set_background_color(&count_text_layer, GColorBlack);
+    text_layer_set_font(&count_text_layer, seconds_font);
+    text_layer_set_text_color(&count_text_layer, GColorWhite);
+    text_layer_set_text(&count_text_layer, "Count:");
+    text_layer_set_text_alignment(&count_text_layer, GTextAlignmentLeft);
+    layer_add_child(root_layer, &count_text_layer.layer);
+
+    text_layer_init(&count_layer, GRect(59, 131, 22, 21));
+    text_layer_set_background_color(&count_layer, GColorBlack);
+    text_layer_set_font(&count_layer, seconds_font);
+    text_layer_set_text_color(&count_layer, GColorWhite);
+    text_layer_set_text(&count_layer, round_count_text);
+    text_layer_set_text_alignment(&count_layer, GTextAlignmentLeft);
+    layer_add_child(root_layer, &count_layer.layer);
 
     // Set up the lap time layers. These will be made visible later.
     for(int i = 0; i < LAP_TIME_SIZE; ++i) {
@@ -219,6 +244,7 @@ void reset_stopwatch(bool keep_running) {
 
     strcpy(period_text, "");
     strcpy(new_period_text, "");
+    strcpy(round_count_text, round_count_digits);
 
     // Animate all the laps away.
     busy_animating = LAP_TIME_SIZE;
@@ -259,6 +285,8 @@ void update_stopwatch() {
     int minutes = (effective_time / 60000) % 60;
     int hours = effective_time / 3600000;
 
+    int current_round_number = current_round_count();
+
     // We can't fit three digit hours, so stop timing here.
     if(hours > 99) {
         stop_stopwatch();
@@ -280,6 +308,11 @@ void update_stopwatch() {
     // Now draw the strings.
     text_layer_set_text(&big_time_layer, big_time);
     text_layer_set_text(&seconds_time_layer, hours < 1 ? deciseconds_time : seconds_time);
+
+    if (total_round_count != 0) {
+        itoa2(total_round_count - current_round_number, round_count_text);
+        text_layer_set_text(&count_layer, round_count_text);
+    }
 }
 
 void animation_stopped(Animation *animation, void *data) {
@@ -416,10 +449,27 @@ time_t current_counter() {
     return rest_time - running_time;
 }
 
+int current_round_count() {
+    time_t running_time = elapsed_time;
+    time_t full_round = round_time + rest_time;
+    int round_counter = 0;
+    for (; running_time > full_round; running_time -= full_round) round_counter++;
+
+    return round_counter;
+}
+
 void period_changed() {
     int current_period = get_round_period();
 
     if (current_period != last_period) {
+        int current_round_number = current_round_count();
+
+        if (total_round_count != 0 && current_round_number == total_round_count) {
+            // We're very done
+            vibes_enqueue_custom_pattern(rounds_done_pattern);
+            reset_stopwatch(false);
+            return;
+        }
         if (current_period == 1) {
             vibes_double_pulse();
         }

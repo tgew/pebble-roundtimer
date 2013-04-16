@@ -43,7 +43,7 @@ static TextLayer time_separators[3];
 static TextLayer round_text_counter_layer;
 static TextLayer round_counter_layer;
 int selection = 0;
-static char round_digits[3];
+char round_count_digits[3];
 static char text_digits[6][3];
 
 GFont big_font;
@@ -57,7 +57,7 @@ void update_text_digits() {
     itoa2((warning_time/1000)%60, text_digits[3]);
     itoa2((rest_time/1000)/60, text_digits[4]);
     itoa2((rest_time/1000)%60, text_digits[5]);
-    itoa2(round_count, round_digits);
+    itoa2(total_round_count, round_count_digits);
 }
 
 void redraw_text_digits() {
@@ -146,7 +146,7 @@ void init_config_window() {
         layer_add_child(root_layer, &time_selectors[(i*2)+1].layer);
     }
 
-    init_text_layer(&round_counter_layer, GRect(122, 64, 22, 21), round_digits, GTextAlignmentRight);
+    init_text_layer(&round_counter_layer, GRect(122, 64, 22, 21), round_count_digits, GTextAlignmentRight);
     layer_add_child(root_layer, &round_counter_layer.layer);
 
     update_selections();
@@ -180,8 +180,8 @@ void go_up(ClickRecognizerRef recognizer, Window *window) {
         return;
     }
     else if (selection == 6) {
-        round_count += 1;
-        round_count = (round_count > 99) ? 99 : round_count;
+        total_round_count += 1;
+        total_round_count = (total_round_count > 99) ? 99 : total_round_count;
     }
     else {
         int incr = 1000;
@@ -213,8 +213,8 @@ void go_down(ClickRecognizerRef recognizer, Window *window) {
         return;
     }
     else if (selection == 6) {
-        round_count -= 1;
-        round_count = (round_count < 0) ? 0 : round_count;
+        total_round_count -= 1;
+        total_round_count = (total_round_count < 0) ? 0 : total_round_count;
     }
     else {
         int incr = -1000;
