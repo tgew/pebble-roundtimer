@@ -28,6 +28,10 @@
 #include "common.h"
 #include "config.h"
 
+#define START_MENU_NUMBER 7
+#define COUNT_MENU_NUMBER 6
+#define TOTAL_MENU_NUMBER 8
+
 static Window config_window;
 
 static TextLayer round_text_time_layer;
@@ -36,7 +40,10 @@ static TextLayer rest_text_time_layer;
 static TextLayer start_text;
 static TextLayer time_selectors[6];
 static TextLayer time_separators[3];
+static TextLayer round_text_counter_layer;
+static TextLayer round_counter_layer;
 int selection = 0;
+static char round_digits[3];
 static char text_digits[6][3];
 
 GFont big_font;
@@ -50,6 +57,7 @@ void update_text_digits() {
     itoa2((warning_time/1000)%60, text_digits[3]);
     itoa2((rest_time/1000)/60, text_digits[4]);
     itoa2((rest_time/1000)%60, text_digits[5]);
+    itoa2(round_count, round_digits);
 }
 
 void redraw_text_digits() {
@@ -78,7 +86,7 @@ void update_selections() {
             text_layer_set_text_color(&time_selectors[i], GColorWhite);
         }
     }
-    if (selection == 6) {
+    if (selection == START_MENU_NUMBER) {
         text_layer_set_background_color(&start_text, GColorWhite);
         text_layer_set_text_color(&start_text, GColorBlack);
     }
@@ -86,6 +94,15 @@ void update_selections() {
         text_layer_set_background_color(&start_text, GColorBlack);
         text_layer_set_text_color(&start_text, GColorWhite);
     }
+    if (selection == COUNT_MENU_NUMBER) {
+        text_layer_set_background_color(&round_counter_layer, GColorWhite);
+        text_layer_set_text_color(&round_counter_layer, GColorBlack);
+    }
+    else {
+        text_layer_set_background_color(&round_counter_layer, GColorBlack);
+        text_layer_set_text_color(&round_counter_layer, GColorWhite);
+    }
+
 }
 
 void window_appear(Window *window) {
@@ -107,25 +124,30 @@ void init_config_window() {
 
     Layer *root_layer = window_get_root_layer(&config_window);
 
-    init_text_layer(&round_text_time_layer, GRect(0, 1, 96, 21), "Round", GTextAlignmentRight);
+    init_text_layer(&round_text_time_layer, GRect(0, 1, 63, 21), "Round:", GTextAlignmentLeft);
     layer_add_child(root_layer, &round_text_time_layer.layer);
-    init_text_layer(&warning_text_time_layer, GRect(0, 43, 96, 21), "Warning", GTextAlignmentRight);
+    init_text_layer(&warning_text_time_layer, GRect(0, 22, 63, 21), "Warn:", GTextAlignmentLeft);
     layer_add_child(root_layer, &warning_text_time_layer.layer);
-    init_text_layer(&rest_text_time_layer, GRect(0, 85, 96, 21), "Rest", GTextAlignmentRight);
+    init_text_layer(&rest_text_time_layer, GRect(0, 43, 63, 21), "Rest:", GTextAlignmentLeft);
     layer_add_child(root_layer, &rest_text_time_layer.layer);
-    init_text_layer(&start_text, GRect(53, 127, 43, 21), "Start", GTextAlignmentRight);
+    init_text_layer(&round_text_counter_layer, GRect(0, 64, 63, 21), "Count:", GTextAlignmentLeft);
+    layer_add_child(root_layer, &round_text_counter_layer.layer);
+    init_text_layer(&start_text, GRect(0, 127, 144, 21), "Start", GTextAlignmentCenter);
     layer_add_child(root_layer, &start_text.layer);
 
     update_text_digits();
     for (int i = 0; i < 3; i++) {
-        int y_height = (i*42)+22;
-        init_text_layer(&time_selectors[i*2], GRect(46, y_height, 22, 21), text_digits[i*2], GTextAlignmentRight);
+        int y_height = i*21+1;
+        init_text_layer(&time_selectors[i*2], GRect(94, y_height, 22, 21), text_digits[i*2], GTextAlignmentRight);
         layer_add_child(root_layer, &time_selectors[i*2].layer);
-        init_text_layer(&time_separators[i], GRect(68, y_height, 6, 21), ":", GTextAlignmentRight);
+        init_text_layer(&time_separators[i], GRect(116, y_height, 6, 21), ":", GTextAlignmentRight);
         layer_add_child(root_layer, &time_separators[i].layer);
-        init_text_layer(&time_selectors[(i*2)+1], GRect(74, y_height, 22, 21), text_digits[i*2+1], GTextAlignmentRight);
+        init_text_layer(&time_selectors[(i*2)+1], GRect(122, y_height, 22, 21), text_digits[i*2+1], GTextAlignmentRight);
         layer_add_child(root_layer, &time_selectors[(i*2)+1].layer);
     }
+
+    init_text_layer(&round_counter_layer, GRect(122, 64, 22, 21), round_digits, GTextAlignmentRight);
+    layer_add_child(root_layer, &round_counter_layer.layer);
 
     update_selections();
 }
@@ -134,10 +156,10 @@ void change_selection(int direction) {
     selection += direction;
 
     if (selection < 0) {
-        selection += 7;
+        selection += TOTAL_MENU_NUMBER;
     }
-    else if (selection >= 7) {
-        selection -= 7;
+    else if (selection >= TOTAL_MENU_NUMBER) {
+        selection -= TOTAL_MENU_NUMBER;
     }
 
     update_selections();
@@ -153,8 +175,13 @@ void make_watch_go(ClickRecognizerRef recognizer, Window *window) {
 }
 
 void go_up(ClickRecognizerRef recognizer, Window *window) {
-    if (selection == 6) {
+    if (selection == START_MENU_NUMBER) {
         make_watch_go(NULL, NULL);
+        return;
+    }
+    else if (selection == 6) {
+        round_count += 1;
+        round_count = (round_count > 99) ? 99 : round_count;
     }
     else {
         int incr = 1000;
@@ -175,14 +202,19 @@ void go_up(ClickRecognizerRef recognizer, Window *window) {
                 rest_time = (rest_time > MAX_TIME) ? MAX_TIME : rest_time;
                 break;
         }
-        update_text_digits();
-        redraw_text_digits();
     }
+    update_text_digits();
+    redraw_text_digits();
 }
 
 void go_down(ClickRecognizerRef recognizer, Window *window) {
-    if (selection == 6) {
+    if (selection == 7) {
         make_watch_go(NULL, NULL);
+        return;
+    }
+    else if (selection == 6) {
+        round_count -= 1;
+        round_count = (round_count < 0) ? 0 : round_count;
     }
     else {
         int incr = -1000;
@@ -203,9 +235,9 @@ void go_down(ClickRecognizerRef recognizer, Window *window) {
                 rest_time = (rest_time < 0) ? 0 : rest_time;
                 break;
         }
-        update_text_digits();
-        redraw_text_digits();
     }
+    update_text_digits();
+    redraw_text_digits();
 }
 
 void config_config_provider(ClickConfig **config, Window *window) {

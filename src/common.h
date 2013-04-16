@@ -26,6 +26,7 @@ extern Window main_window;
 extern time_t round_time;
 extern time_t warning_time;
 extern time_t rest_time;
+extern int round_count;
 
 void itoa1(int i, char* a);
 void itoa2(int i, char* a);
