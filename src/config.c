@@ -244,12 +244,12 @@ void config_config_provider(ClickConfig **config, Window *window) {
     config[BUTTON_ID_SELECT]->click.handler = (ClickHandler)change_selection_down;
 
     config[BUTTON_ID_SELECT]->long_click.handler = (ClickHandler)make_watch_go;
-    config[BUTTON_ID_SELECT]->long_click.delay_ms = 700;
+    config[BUTTON_ID_SELECT]->long_click.delay_ms = 500;
 
     config[BUTTON_ID_UP]->click.handler = (ClickHandler)go_up;
-    config[BUTTON_ID_UP]->click.repeat_interval_ms = 250;
+    config[BUTTON_ID_UP]->click.repeat_interval_ms = 150;
     config[BUTTON_ID_DOWN]->click.handler = (ClickHandler)go_down;
-    config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 250;
+    config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 150;
     (void)window;
 }
 
