@@ -156,12 +156,12 @@ void handle_init(AppContextRef ctx) {
 
     // Set up the lap time layers. These will be made visible later.
     for(int i = 0; i < LAP_TIME_SIZE; ++i) {
-        text_layer_init(&lap_layers[i], GRect(-139, 52, 139, 30));
+        text_layer_init(&lap_layers[i], GRect(-139, -30, 139, 30));
         text_layer_set_background_color(&lap_layers[i], GColorClear);
         text_layer_set_font(&lap_layers[i], laps_font);
         text_layer_set_text_color(&lap_layers[i], GColorWhite);
         text_layer_set_text(&lap_layers[i], lap_times[i]);
-        layer_add_child(root_layer, &lap_layers[i].layer);
+        //layer_add_child(root_layer, &lap_layers[i].layer);
     }
 
     // Add some button labels
@@ -465,9 +465,9 @@ void handle_display_lap_times(ClickRecognizerRef recognizer, Window *window) {
 void main_config_provider(ClickConfig **config, Window *window) {
     config[BUTTON_RUN]->click.handler = (ClickHandler)toggle_stopwatch_handler;
     config[BUTTON_RESET]->click.handler = (ClickHandler)reset_stopwatch_handler;
-    config[BUTTON_LAP]->click.handler = (ClickHandler)lap_time_handler;
+    /*config[BUTTON_LAP]->click.handler = (ClickHandler)lap_time_handler;
     config[BUTTON_LAP]->long_click.handler = (ClickHandler)handle_display_lap_times;
-    config[BUTTON_LAP]->long_click.delay_ms = 700;
+    config[BUTTON_LAP]->long_click.delay_ms = 700;*/
     (void)window;
 }
 
