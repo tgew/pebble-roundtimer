@@ -171,7 +171,7 @@ void go_up(ClickRecognizerRef recognizer, Window *window) {
                 warning_time = (warning_time > MAX_TIME) ? MAX_TIME : warning_time;
                 break;
             case 2:
-                rest_time -= incr;
+                rest_time += incr;
                 rest_time = (rest_time > MAX_TIME) ? MAX_TIME : rest_time;
                 break;
         }
