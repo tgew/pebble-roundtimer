@@ -29,8 +29,8 @@
 
 #define MY_UUID { 0xC2, 0x5A, 0x8D, 0x50, 0x10, 0x5F, 0x45, 0xBF, 0xB9, 0x92, 0xCF, 0xF9, 0x58, 0xA7, 0x93, 0xAD }
 PBL_APP_INFO(MY_UUID,
-             "Stopwatch", "Katharine Berry",
-             3, 1, /* App version */
+             "Round Timer", "Jason Chu",
+             1, 0, /* App version */
              RESOURCE_ID_IMAGE_MENU_ICON,
              APP_INFO_STANDARD_APP);
 
@@ -50,6 +50,11 @@ static char lap_times[LAP_TIME_SIZE][11] = {"00:00:00.0", "00:01:00.0", "00:02:0
 static TextLayer lap_layers[LAP_TIME_SIZE]; // an extra temporary layer
 static int next_lap_layer = 0;
 static int last_lap_time = 0;
+
+time_t round_time = 60000;
+time_t warning_time = 0; // part of the round time
+time_t rest_time = 15000;
+int last_period = -1;
 
 // The documentation claims this is defined, but it is not.
 // Define it here for now.
@@ -97,6 +102,10 @@ void draw_line(Layer *me, GContext* ctx);
 void save_lap_time(int seconds);
 void lap_time_handler(ClickRecognizerRef recognizer, Window *window);
 void shift_lap_layer(PropertyAnimation* animation, Layer* layer, GRect* target, int distance_multiplier);
+time_t single_round_running_time();
+int get_round_period();
+time_t current_counter();
+void period_changed();
 
 void handle_init(AppContextRef ctx) {
     app = ctx;
@@ -230,10 +239,12 @@ void update_stopwatch() {
     static char seconds_time[] = ":00";
 
     // Now convert to hours/minutes/seconds.
-    int tenths = (elapsed_time / 100) % 10;
-    int seconds = (elapsed_time / 1000) % 60;
-    int minutes = (elapsed_time / 60000) % 60;
-    int hours = elapsed_time / 3600000;
+    time_t effective_time = current_counter();
+
+    int tenths = (effective_time / 100) % 10;
+    int seconds = (effective_time / 1000) % 60;
+    int minutes = (effective_time / 60000) % 60;
+    int hours = effective_time / 3600000;
 
     // We can't fit three digit hours, so stop timing here.
     if(hours > 99) {
@@ -308,6 +319,57 @@ void save_lap_time(int lap_time) {
     store_lap_time(lap_time);
 }
 
+time_t single_round_running_time() {
+    time_t running_time = elapsed_time;
+    time_t full_round = round_time + rest_time;
+    for (; running_time > full_round; running_time -= full_round);
+
+    return running_time;
+}
+
+int get_round_period() {
+    // If we are within a round period: 0
+    // If we are within a warning period: 1
+    // If we are within a resting period: 2
+
+    time_t running_time = single_round_running_time();
+
+    if (running_time < round_time) {
+        if (warning_time != 0 && running_time > round_time - warning_time) {
+            return 1;
+        }
+        return 0;
+    }
+    return 2;
+}
+
+time_t current_counter() {
+    time_t running_time = single_round_running_time();
+
+    if (running_time < round_time) {
+        return round_time - running_time;
+    }
+    running_time -= round_time;
+    return rest_time - running_time;
+}
+
+void period_changed() {
+    int current_period = get_round_period();
+
+    if (current_period != last_period) {
+        if (current_period == 1) {
+            vibes_double_pulse();
+        }
+        else if (current_period == 2) {
+            vibes_long_pulse();
+        }
+        else if (current_period == 0) {
+            vibes_long_pulse();
+        }
+    }
+    last_period = current_period;
+}
+
 void handle_timer(AppContextRef ctx, AppTimerHandle handle, uint32_t cookie) {
     (void)handle;
     if(cookie == TIMER_UPDATE) {
@@ -326,6 +388,7 @@ void handle_timer(AppContextRef ctx, AppTimerHandle handle, uint32_t cookie) {
                 last_pebble_time = pebble_time;
             }
             update_timer = app_timer_send_event(ctx, elapsed_time <= 3600000 ? 100 : 1000, TIMER_UPDATE);
+            period_changed();
         }
         update_stopwatch();
     }
