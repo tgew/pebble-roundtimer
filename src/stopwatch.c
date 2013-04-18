@@ -32,7 +32,7 @@
 #define MY_UUID { 0x58, 0x72, 0x50, 0x98, 0x05, 0x84, 0x49, 0xE3, 0xA1, 0x2D, 0xBE, 0x1A, 0x7C, 0xAF, 0x2B, 0x43 }
 PBL_APP_INFO(MY_UUID,
              "Round Timer", "Jason Chu",
-             2, 0, /* App version */
+             2, 1, /* App version */
              RESOURCE_ID_IMAGE_MENU_ICON,
              APP_INFO_STANDARD_APP);
 
