@@ -51,7 +51,12 @@ static char new_period_text[8] = "";
 
 static char round_count_text[3] = "";
 
-const VibePattern rounds_done_pattern = {
+const VibePattern round_done_pattern = {
+    .durations = (uint32_t []) {300, 100, 300, 100, 300},
+    .num_segments = 5
+};
+
+const VibePattern all_rounds_done_pattern = {
     .durations = (uint32_t []) {300, 100, 300, 100, 300, 100, 600},
     .num_segments = 7
 };
@@ -466,7 +471,7 @@ void period_changed() {
 
         if (total_round_count != 0 && current_round_number == total_round_count) {
             // We're very done
-            vibes_enqueue_custom_pattern(rounds_done_pattern);
+            vibes_enqueue_custom_pattern(all_rounds_done_pattern);
             reset_stopwatch(false);
             return;
         }
@@ -474,7 +479,7 @@ void period_changed() {
             vibes_double_pulse();
         }
         else if (current_period == 2) {
-            vibes_long_pulse();
+            vibes_enqueue_custom_pattern(round_done_pattern);
         }
         else if (current_period == 0) {
             vibes_long_pulse();
