@@ -11,7 +11,7 @@
         },
         {
             "type": "font",
-            "characterRegex": "[:0-9. )NolapsyetRundWrigSC]",
+            "characterRegex": "[:0-9. )NolapsyetRundWrigSCT]",
             "defName": "FONT_DEJAVU_SANS_SUBSET_18",
             "file": "fonts/DejaVuSans.ttf"
         },

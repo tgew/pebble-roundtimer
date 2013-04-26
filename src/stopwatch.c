@@ -45,11 +45,14 @@ static BmpContainer button_labels;
 static TextLayer period_layer;
 static TextLayer count_text_layer;
 static TextLayer count_layer;
+static TextLayer elapsed_layer;
+static TextLayer elapsed_text_layer;
 
 static char period_text[8] = "";
 static char new_period_text[8] = "";
 
 static char round_count_text[3] = "";
+static char elapsed_count_text[7] = "00:00.0";
 
 const VibePattern round_done_pattern = {
     .durations = (uint32_t []) {300, 100, 300, 100, 300},
@@ -184,6 +187,22 @@ void handle_init(AppContextRef ctx) {
     text_layer_set_text_alignment(&count_layer, GTextAlignmentLeft);
     layer_add_child(root_layer, &count_layer.layer);
 
+    text_layer_init(&elapsed_layer, GRect(0, 110, 51, 21));
+    text_layer_set_background_color(&elapsed_layer, GColorBlack);
+    text_layer_set_font(&elapsed_layer, seconds_font);
+    text_layer_set_text_color(&elapsed_layer, GColorWhite);
+    text_layer_set_text(&elapsed_layer, "Total:");
+    text_layer_set_text_alignment(&elapsed_layer, GTextAlignmentLeft);
+    layer_add_child(root_layer, &elapsed_layer.layer);
+
+    text_layer_init(&elapsed_text_layer, GRect(51, 110, 67, 21));
+    text_layer_set_background_color(&elapsed_text_layer, GColorBlack);
+    text_layer_set_font(&elapsed_text_layer, seconds_font);
+    text_layer_set_text_color(&elapsed_text_layer, GColorWhite);
+    text_layer_set_text(&elapsed_text_layer, elapsed_count_text);
+    text_layer_set_text_alignment(&elapsed_text_layer, GTextAlignmentLeft);
+    layer_add_child(root_layer, &elapsed_text_layer.layer);
+
     // Set up the lap time layers. These will be made visible later.
     for(int i = 0; i < LAP_TIME_SIZE; ++i) {
         text_layer_init(&lap_layers[i], GRect(-139, -30, 139, 30));
@@ -250,6 +269,7 @@ void reset_stopwatch(bool keep_running) {
     strcpy(period_text, "");
     strcpy(new_period_text, "");
     strcpy(round_count_text, round_count_digits);
+    strcpy(elapsed_count_text, "00:00.0");
 
     // Animate all the laps away.
     busy_animating = LAP_TIME_SIZE;
@@ -310,9 +330,21 @@ void update_stopwatch() {
         itoa2(seconds, &seconds_time[1]);
     }
 
+    int elapsed_tenths = (elapsed_time / 100) % 10;
+    int elapsed_seconds = (elapsed_time / 1000) % 60;
+    int elapsed_minutes = (elapsed_time / 60000) % 60;
+    int elapsed_hours = elapsed_time / 3600000;
+
+    //itoa2(elapsed_hours, &elapsed_count_text[0]);
+    itoa2(elapsed_minutes, &elapsed_count_text[0]);
+    itoa2(elapsed_seconds, &elapsed_count_text[3]);
+    itoa1(elapsed_tenths, &elapsed_count_text[6]);
+
     // Now draw the strings.
     text_layer_set_text(&big_time_layer, big_time);
     text_layer_set_text(&seconds_time_layer, hours < 1 ? deciseconds_time : seconds_time);
+
+    text_layer_set_text(&elapsed_text_layer, elapsed_count_text);
 
     if (total_round_count != 0) {
         itoa2(total_round_count - current_round_number, round_count_text);
